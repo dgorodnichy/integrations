@@ -9,13 +9,22 @@ class MarketplaceClients::B < MarketplaceClients::Base
   end
 
   def create_product
-    response = Faraday.new(url: 'http://localhost:3002').post('/inventory', marketplace_params)
+    with_retries(max_retries: MAX_RETRIES, retry_delay: RETRY_DELAY) do
+      response = Faraday.new(url: 'http://localhost:3002').post('/inventory', marketplace_params)
 
-    JSON.parse(response.body)
+      return JSON.parse(response.body) if response.success?
+
+      raise ExternalApiError
+    end
   end
 
   def publish_product(inventory_id)
-    Faraday.new(url: 'http://localhost:3002').post("/inventory/#{inventory_id}/publish", {})
+    with_retries(max_retries: MAX_RETRIES, retry_delay: RETRY_DELAY) do
+      response = Faraday.new(url: 'http://localhost:3002').post("/inventory/#{inventory_id}/publish", {})
+      return response.body if response.success?
+
+      raise ExternalApiError
+    end
   end
 
   private

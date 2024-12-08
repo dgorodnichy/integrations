@@ -1,4 +1,9 @@
 class MarketplaceClients::Base
+  include Retryable
+
+  MAX_RETRIES = 10
+  RETRY_DELAY = 2
+
   attr_reader :product
 
   def self.publish(product)
@@ -18,3 +23,4 @@ class MarketplaceClients::Base
   end
 end
 
+class ExternalApiError < StandardError; end
