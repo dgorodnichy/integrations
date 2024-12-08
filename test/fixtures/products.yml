@@ -1,0 +1,14 @@
+one:
+  name: Product ABC1234
+  price: 1999
+  sku: ABC1234
+
+product_with_fail_in_first_step:
+  name: Product ABC1234
+  price: 1999
+  sku: STEP1FAIL
+
+product_with_fail_in_second_step:
+  name: Product ABC1234
+  price: 1999
+  sku: STEP2FAIL
