@@ -17,7 +17,7 @@ class MarketplacePublisherTest < ActiveSupport::TestCase
     stub_request(:post, "http://localhost:3002/inventory/12345/publish")
       .to_return(status: 200, body: { inventory_id: "12345", status: "published" }.to_json)
 
-    MarketplacePublisher.publish(@product, [MarketplaceClients::A, MarketplaceClients::B])
+    MarketplacePublisher.publish(@product)
 
     publish_task_a = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
     publish_task_b = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::B", product_id: @product.id)
