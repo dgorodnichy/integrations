@@ -13,7 +13,7 @@ class MarketplaceClients::A < MarketplaceClients::Base
     response = nil
     with_retries(max_retries: MAX_RETRIES, retry_delay: RETRY_DELAY) do
       response = yield
-      raise ExternalApiError, "Unexpected response status: #{response.status}" unless response.status == 200
+      raise ExternalApiError, "Unexpected response status: #{response.status}" unless response.success?
     end
 
     response
