@@ -66,6 +66,9 @@ The `PublishTaskHandler` entity stores information about the product publication
 -   **Step statuses:** stores information about whether each step of the publication process was successful.
 -   **Logs:** stores data about requests and responses from marketplaces.
 
+<img width="808" alt="Screenshot 2024-12-09 at 12 17 10" src="https://github.com/user-attachments/assets/ce5c1e9b-8213-46ef-a678-8f9c4d13ee6b">
+
+
 ## Publication Architecture
 
 The **Adapter Pattern** is used for product publication. The main class is `MarketplacePublisher`.
