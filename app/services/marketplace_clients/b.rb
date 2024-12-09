@@ -29,11 +29,15 @@ class MarketplaceClients::B < MarketplaceClients::Base
   end
 
   def post_inventory_to_marketplace
-    Faraday.new(url: 'http://localhost:3002').post('/inventory', marketplace_params)
+    Faraday.new(url: 'http://localhost:3002') do |conn|
+      conn.headers['Content-Type'] = 'application/json'
+    end.post('/inventory', marketplace_params.to_json)
   end
 
   def post_publish_inventory(inventory_id)
-    Faraday.new(url: 'http://localhost:3002').post("/inventory/#{inventory_id}/publish", {})
+    Faraday.new(url: 'http://localhost:3002') do |conn|
+      conn.headers['Content-Type'] = 'application/json'
+    end.post("/inventory/#{inventory_id}/publish", {})
   end
 
   def perform_with_retries

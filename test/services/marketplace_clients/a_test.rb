@@ -10,19 +10,20 @@ class MarketplaceClients::ATest < ActiveSupport::TestCase
 
   test "success request" do
     stub_request(:post, "http://localhost:3001/api/products")
-      .with(body: URI.encode_www_form({"name"=>"Product ABC1234", "price"=>"1999", "sku"=>"ABC1234"}))
+      .with(body: {name: "Product ABC1234", price: 1999, sku: "ABC1234"})
       .to_return(status: 200, body: { "id": "12345", "status": "success" }.to_json)
 
     result = MarketplaceClients::A.publish(@product)
 
-    publish_task = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+    handler = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
 
-    assert publish_task.completed?
+    assert handler.completed?
+    assert_equal ({"publication"=>{"code"=>200, "payload"=>"{\"id\":\"12345\",\"status\":\"success\"}"}}), handler.logs
   end
 
   test "failed first request" do
     stub_request(:post, "http://localhost:3001/api/products")
-      .with(body: URI.encode_www_form({"name"=>"Product ABC1234", "price"=>"1999", "sku"=>"ABC1234"}))
+      .with(body: {name: "Product ABC1234", price: 1999, sku: "ABC1234"})
       .to_return(
         { status: 500, body: { error: 'Internal Server Error' }.to_json },
         { status: 200, body: { "id": "12345", "status": "success" }.to_json }
@@ -30,23 +31,23 @@ class MarketplaceClients::ATest < ActiveSupport::TestCase
 
     result = MarketplaceClients::A.publish(@product)
 
-    publish_task = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+    handler = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
 
-    assert publish_task.completed?
-    assert_equal publish_task.logs, {"publication"=>{"code"=>200, "payload"=>"{\"id\":\"12345\",\"status\":\"success\"}"}}
+    assert handler.completed?
+    assert_equal ({"publication"=>{"code"=>200, "payload"=>"{\"id\":\"12345\",\"status\":\"success\"}"}}), handler.logs
   end
 
   test "more than MAX_RETRIES failing attempts" do
     stub_request(:post, "http://localhost:3001/api/products")
-      .with(body: URI.encode_www_form({"name"=>"Product ABC1234", "price"=>"1999", "sku"=>"ABC1234"}))
+      .with(body: {name: "Product ABC1234", price: 1999, sku: "ABC1234"})
       .to_return( status: 500, body: { error: 'Internal Server Error' }.to_json)
 
     result = MarketplaceClients::A.publish(@product)
 
-    publish_task = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+    handler = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
 
-    assert publish_task.failed?
-    assert_equal ({"publication"=>{"code"=>500, "payload"=>"{\"error\":\"Internal Server Error\"}"}}), publish_task.logs
+    assert handler.failed?
+    assert_equal ({"publication"=>{"code"=>500, "payload"=>"{\"error\":\"Internal Server Error\"}"}}), handler.logs
   end
 end
 

@@ -15,11 +15,14 @@ class MarketplaceClients::A < MarketplaceClients::Base
       response = yield
       raise ExternalApiError, "Unexpected response status: #{response.status}" unless response.status == 200
     end
+
     response
   end
 
   def post_product_to_marketplace
-    Faraday.new(url: 'http://localhost:3001').post('/api/products', marketplace_params)
+    Faraday.new(url: 'http://localhost:3001') do |conn|
+      conn.headers['Content-Type'] = 'application/json'
+    end.post('/api/products', marketplace_params.to_json)
   end
 
   def marketplace_params

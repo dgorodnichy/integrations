@@ -10,7 +10,9 @@ class MarketplaceClients::BTest < ActiveSupport::TestCase
 
   test "success requests" do
     stub_request(:post, "http://localhost:3002/inventory")
-      .with(body: URI.encode_www_form({"price_cents"=>"1999", "seller_sku"=>"ABC1234", "title"=>"Product ABC1234"}))
+      .with(
+        body: { price_cents: 1999, seller_sku: "ABC1234", title: "Product ABC1234" },
+      )
       .to_return(status: 200, body: { "inventory_id": "12345", "status": "created" }.to_json)
 
     stub_request(:post, "http://localhost:3002/inventory/12345/publish")
@@ -27,7 +29,7 @@ class MarketplaceClients::BTest < ActiveSupport::TestCase
 
   test "failed create step" do
     stub_request(:post, "http://localhost:3002/inventory")
-      .with(body: URI.encode_www_form("price_cents"=>"1999", "seller_sku"=>"ABC1234", "title"=>"Product ABC1234"))
+      .with(body: { price_cents: 1999, seller_sku: "ABC1234", title: "Product ABC1234" })
       .to_return(
         { status: 500, body: { error: 'Internal Server Error' }.to_json },
         { status: 200, body: { "inventory_id": "12345", "status": "created" }.to_json }
@@ -47,7 +49,7 @@ class MarketplaceClients::BTest < ActiveSupport::TestCase
 
   test "failed publish step" do
     stub_request(:post, "http://localhost:3002/inventory")
-      .with(body: URI.encode_www_form("price_cents"=>"1999", "seller_sku"=>"ABC1234", "title"=>"Product ABC1234"))
+      .with(body: { price_cents: 1999, seller_sku: "ABC1234", title: "Product ABC1234" })
       .to_return(
         status: 200, body: { "inventory_id": "12345", "status": "created" }.to_json
       )
@@ -68,7 +70,7 @@ class MarketplaceClients::BTest < ActiveSupport::TestCase
 
   test "both steps failed" do
     stub_request(:post, "http://localhost:3002/inventory")
-      .with(body: URI.encode_www_form("price_cents"=>"1999", "seller_sku"=>"ABC1234", "title"=>"Product ABC1234"))
+      .with(body: { price_cents: 1999, seller_sku: "ABC1234", title: "Product ABC1234" })
       .to_return(
         { status: 500, body: { error: 'Internal Server Error' }.to_json },
         { status: 200, body: { "inventory_id": "12345", "status": "created" }.to_json }
@@ -92,7 +94,7 @@ class MarketplaceClients::BTest < ActiveSupport::TestCase
 
   test "more than MAX_RETRIES failing attempts" do
     stub_request(:post, "http://localhost:3002/inventory")
-      .with(body: URI.encode_www_form("price_cents"=>"1999", "seller_sku"=>"ABC1234", "title"=>"Product ABC1234"))
+      .with(body: { price_cents: 1999, seller_sku: "ABC1234", title: "Product ABC1234" })
       .to_return(
         { status: 500, body: { error: 'Internal Server Error' }.to_json },
       )
