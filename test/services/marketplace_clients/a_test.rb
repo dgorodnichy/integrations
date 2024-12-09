@@ -2,8 +2,10 @@ require "test_helper"
 
 class MarketplaceClients::ATest < ActiveSupport::TestCase
   def setup
-    MarketplaceClients::A.const_set(:MAX_RETRIES, 5)
+    MarketplaceClients::A.const_set(:MAX_RETRIES, 3)
     MarketplaceClients::A.const_set(:RETRY_DELAY, 0.1)
+
+    @product = products(:one)
   end
 
   test "success request" do
@@ -11,12 +13,11 @@ class MarketplaceClients::ATest < ActiveSupport::TestCase
       .with(body: URI.encode_www_form({"name"=>"Product ABC1234", "price"=>"1999", "sku"=>"ABC1234"}))
       .to_return(status: 200, body: { "id": "12345", "status": "success" }.to_json)
 
-    result = MarketplaceClients::A.publish(products(:one))
+    result = MarketplaceClients::A.publish(@product)
 
-    assert_equal ({
-      "id": "12345",
-      "status": "success"
-    }.to_json), result
+    publish_task = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+
+    assert publish_task.completed?
   end
 
   test "failed first request" do
@@ -27,12 +28,25 @@ class MarketplaceClients::ATest < ActiveSupport::TestCase
         { status: 200, body: { "id": "12345", "status": "success" }.to_json }
       )
 
-    result = MarketplaceClients::A.publish(products(:one))
+    result = MarketplaceClients::A.publish(@product)
 
-    assert_equal ({
-      "id": "12345",
-      "status": "success"
-    }.to_json), result
+    publish_task = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+
+    assert publish_task.completed?
+    assert_equal publish_task.logs, {"publication"=>{"code"=>200, "payload"=>"{\"id\":\"12345\",\"status\":\"success\"}"}}
+  end
+
+  test "more than MAX_RETRIES failing attempts" do
+    stub_request(:post, "http://localhost:3001/api/products")
+      .with(body: URI.encode_www_form({"name"=>"Product ABC1234", "price"=>"1999", "sku"=>"ABC1234"}))
+      .to_return( status: 500, body: { error: 'Internal Server Error' }.to_json)
+
+    result = MarketplaceClients::A.publish(@product)
+
+    publish_task = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+
+    assert publish_task.failed?
+    assert_equal ({"publication"=>{"code"=>500, "payload"=>"{\"error\":\"Internal Server Error\"}"}}), publish_task.logs
   end
 end
 

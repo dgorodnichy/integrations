@@ -1,10 +1,7 @@
 class MarketplacePublisher
-  def self.publish(product, clients)
-    result = {}
-    clients.each do |client|
-      result[client.name] = client.publish(product)
+  def self.publish(product, marketplaces)
+    marketplaces.each do |marketplace|
+      PublishJob.perform_later(marketplace.to_s, product.id)
     end
-
-    result
   end
 end

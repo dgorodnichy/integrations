@@ -1,33 +1,58 @@
 class MarketplaceClients::B < MarketplaceClients::Base
-  def self.name
-    :b
+  def publish
+    return if handler.completed?
+
+    created_product = create_product
+    return unless created_product
+
+    publish_product(created_product["inventory_id"])
+
+    handler.completed!
   end
 
-  def publish
-    created_product = create_product
-    publish_product(created_product["inventory_id"])
-  end
+  private
 
   def create_product
-    with_retries(max_retries: MAX_RETRIES, retry_delay: RETRY_DELAY) do
-      response = Faraday.new(url: 'http://localhost:3002').post('/inventory', marketplace_params)
+    return cached_step_data("creation", "inventory_id") if step_successful?("creation")
 
-      return JSON.parse(response.body) if response.success?
-
-      raise ExternalApiError
+    response = perform_with_retries { post_inventory_to_marketplace }
+    handle_response(response, "creation") do |body|
+      { "inventory_id" => body["inventory_id"] }
     end
   end
 
   def publish_product(inventory_id)
-    with_retries(max_retries: MAX_RETRIES, retry_delay: RETRY_DELAY) do
-      response = Faraday.new(url: 'http://localhost:3002').post("/inventory/#{inventory_id}/publish", {})
-      return response.body if response.success?
+    return cached_step_data("publication", "inventory_id") if step_successful?("publication")
 
-      raise ExternalApiError
-    end
+    response = perform_with_retries { post_publish_inventory(inventory_id) }
+    handle_response(response, "publication")
   end
 
-  private
+  def post_inventory_to_marketplace
+    Faraday.new(url: 'http://localhost:3002').post('/inventory', marketplace_params)
+  end
+
+  def post_publish_inventory(inventory_id)
+    Faraday.new(url: 'http://localhost:3002').post("/inventory/#{inventory_id}/publish", {})
+  end
+
+  def perform_with_retries
+    response = nil
+    with_retries(max_retries: MAX_RETRIES, retry_delay: RETRY_DELAY) do
+      response = yield
+      raise ExternalApiError, "Unexpected response status: #{response.status}" unless response.success?
+    end
+    response
+  end
+
+  def step_successful?(step_name)
+    return false if handler.steps.blank?
+    handler.steps&.fetch(step_name, {})["status"] == "success"
+  end
+
+  def cached_step_data(step_name, key)
+    handler.steps&.dig(step_name, key)
+  end
 
   def marketplace_params
     {

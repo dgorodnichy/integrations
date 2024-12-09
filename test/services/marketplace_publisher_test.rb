@@ -2,33 +2,27 @@ require "test_helper"
 
 class MarketplacePublisherTest < ActiveSupport::TestCase
   def setup
-    @product = { name: "Product Name", price: 1999, sku: "ABC123" }
-    @expected_response = { client_1: { result: "success", id: 1 }, client_2: { result: "success", id: 2 } }
+    @product = products(:one)
   end
 
-  test "should call publish method for clients" do
-    result = MarketplacePublisher.publish(@product, [Client1, Client2])
+  test "should create publish task with completed status" do
+    stub_request(:post, "http://localhost:3001/api/products")
+      .with(body: URI.encode_www_form({"name"=>"Product ABC1234", "price"=>"1999", "sku"=>"ABC1234"}))
+      .to_return(status: 200, body: { "id": "12345", "status": "success" }.to_json)
 
-    assert_equal @expected_response, result
-  end
-end
+    stub_request(:post, "http://localhost:3002/inventory")
+      .with(body: URI.encode_www_form({"price_cents"=>"1999", "seller_sku"=>"ABC1234", "title"=>"Product ABC1234"}))
+      .to_return(status: 200, body: { "inventory_id": "12345", "status": "created" }.to_json)
 
-class Client1 < MarketplaceClients::Base
-  def self.name
-    :client_1
-  end
+    stub_request(:post, "http://localhost:3002/inventory/12345/publish")
+      .to_return(status: 200, body: { "inventory_id": "12345", "status": "published" }.to_json)
 
-  def publish
-    { result: "success", id: 1 }
-  end
-end
+    MarketplacePublisher.publish(@product, [MarketplaceClients::A, MarketplaceClients::B])
 
-class Client2 < MarketplaceClients::Base
-  def self.name
-    :client_2
-  end
+    publish_task_a = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::A", product_id: @product.id)
+    publish_task_b = PublishTaskHandler.find_by(marketplace: "MarketplaceClients::B", product_id: @product.id)
 
-  def publish
-    { result: "success", id: 2 }
+    assert publish_task_a.completed?
+    assert publish_task_b.completed?
   end
 end

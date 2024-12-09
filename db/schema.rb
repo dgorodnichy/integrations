@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_12_08_103817) do
+ActiveRecord::Schema[8.0].define(version: 2024_12_08_154711) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,5 +21,17 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_08_103817) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["sku"], name: "index_products_on_sku"
+  end
+
+  create_table "publish_task_handlers", force: :cascade do |t|
+    t.string "marketplace"
+    t.integer "product_id"
+    t.json "steps"
+    t.integer "status"
+    t.json "logs"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["marketplace"], name: "index_publish_task_handlers_on_marketplace"
+    t.index ["product_id"], name: "index_publish_task_handlers_on_product_id"
   end
 end

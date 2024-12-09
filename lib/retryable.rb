@@ -9,8 +9,6 @@ module Retryable
         puts "Attempt #{retries} failed: #{e.message}. Retrying in #{retry_delay} seconds..."
         sleep retry_delay
         retry
-      else
-        raise "Failed after #{max_retries} retries: #{e.message}"
       end
     end
   end
